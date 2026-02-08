@@ -1,0 +1,225 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Affirmation Board</title>
+
+<style>
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #F7F9FC;
+    color: #333;
+  }
+
+  h1 {
+    text-align: center;
+    margin: 16px 0;
+    font-size: 22px;
+  }
+
+  .board {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .card {
+    background: #fff;
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+  }
+
+  h2 {
+    margin: 0 0 8px;
+    font-size: 18px;
+  }
+
+  .health h2 { color: #4CAF50; }
+  .relationship h2 { color: #E91E63; }
+  .career h2 { color: #2196F3; }
+  .money h2 { color: #FFB300; }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: 15px;
+  }
+
+  input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+  }
+
+  .progress {
+    margin-top: 8px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .affirmation {
+    margin-top: 6px;
+    font-size: 14px;
+    font-style: italic;
+    opacity: 0.85;
+  }
+
+  .slider {
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .small {
+    font-size: 12px;
+    opacity: 0.7;
+  }
+</style>
+</head>
+
+<body>
+
+<h1>My Affirmation Board</h1>
+
+<div class="board">
+
+  <!-- HEALTH (DAILY) -->
+  <div class="card health" data-scope="daily">
+    <h2>🌿 Health (Daily)</h2>
+    <ul>
+      <li><input type="checkbox"> Medicine</li>
+      <li><input type="checkbox"> Vitamins</li>
+      <li><input type="checkbox"> 6,000 steps</li>
+      <li><input type="checkbox"> Tai Chi</li>
+      <li><input type="checkbox"> Eat clean</li>
+    </ul>
+    <div class="progress"></div>
+    <div class="affirmation"></div>
+  </div>
+
+  <!-- RELATIONSHIPS (DAILY) -->
+  <div class="card relationship" data-scope="daily">
+    <h2>💗 Relationships (Daily)</h2>
+    <ul>
+      <li><input type="checkbox"> 2 kind things for husband</li>
+      <li><input type="checkbox"> 2 kind things for daughter</li>
+      <li><input type="checkbox"> 2 kind things for dog</li>
+    </ul>
+    <div class="progress"></div>
+    <div class="affirmation"></div>
+  </div>
+
+  <!-- CAREER -->
+  <div class="card career" data-scope="daily">
+    <h2>💼 Career — Daily</h2>
+    <ul>
+      <li><input type="checkbox"> Connect with 3 people</li>
+      <li><input type="checkbox"> Influence 2 team members</li>
+    </ul>
+    <div class="progress"></div>
+    <div class="affirmation"></div>
+  </div>
+
+  <!-- CAREER MONTHLY -->
+  <div class="card career" data-scope="monthly">
+    <h2>📈 Career — Monthly Target</h2>
+    <div class="small">$75,000 Monthly Business Goal</div>
+    <input type="range" min="0" max="75000" step="500" value="0" class="slider">
+    <div class="progress"></div>
+    <div class="affirmation"></div>
+  </div>
+
+  <!-- MONEY (WEEKLY) -->
+  <div class="card money" data-scope="weekly">
+    <h2>💰 Money (Weekly)</h2>
+    <ul>
+      <li><input type="checkbox"> Achieve 2% return</li>
+      <li><input type="checkbox"> Invest 2% into business</li>
+    </ul>
+    <div class="progress"></div>
+    <div class="affirmation"></div>
+  </div>
+
+</div>
+
+<script>
+  const now = new Date();
+  const dailyKey = now.toDateString();
+  const weeklyKey = now.getFullYear() + "-W" + Math.ceil((((now - new Date(now.getFullYear(),0,1)) / 86400000) + new Date(now.getFullYear(),0,1).getDay()+1)/7);
+  const monthlyKey = now.getFullYear() + "-" + now.getMonth();
+
+  function resetIfNeeded(scope, key) {
+    if (localStorage.getItem(scope + "Reset") !== key) {
+      Object.keys(localStorage)
+        .filter(k => k.startsWith(scope))
+        .forEach(k => localStorage.removeItem(k));
+      localStorage.setItem(scope + "Reset", key);
+    }
+  }
+
+  resetIfNeeded("daily", dailyKey);
+  resetIfNeeded("weekly", weeklyKey);
+  resetIfNeeded("monthly", monthlyKey);
+
+  document.querySelectorAll("input[type=checkbox]").forEach((box, i) => {
+    const scope = box.closest(".card").dataset.scope;
+    const key = scope + "-box-" + i;
+    box.checked = localStorage.getItem(key) === "true";
+    box.addEventListener("change", () => {
+      localStorage.setItem(key, box.checked);
+      update();
+    });
+  });
+
+  document.querySelectorAll(".slider").forEach(slider => {
+    const key = "monthly-slider";
+    slider.value = localStorage.getItem(key) || 0;
+    slider.addEventListener("input", () => {
+      localStorage.setItem(key, slider.value);
+      update();
+    });
+  });
+
+  function update() {
+    document.querySelectorAll(".card").forEach(card => {
+      const boxes = card.querySelectorAll("input[type=checkbox]");
+      const slider = card.querySelector(".slider");
+      let percent = 0;
+
+      if (slider) {
+        percent = Math.round((slider.value / 75000) * 100);
+        card.querySelector(".progress").textContent =
+          `$${slider.value} / $75,000 (${percent}%)`;
+      } else {
+        const checked = [...boxes].filter(b => b.checked).length;
+        percent = Math.round((checked / boxes.length) * 100);
+        card.querySelector(".progress").textContent =
+          `Progress: ${percent}%`;
+      }
+
+      let msg = "Consistency builds success.";
+      if (percent >= 100) msg = "Target achieved. Well done.";
+      else if (percent >= 60) msg = "Strong momentum.";
+      else if (percent >= 30) msg = "Progress is underway.";
+      else msg = "Start small. Stay steady.";
+
+      card.querySelector(".affirmation").textContent = msg;
+    });
+  }
+
+  update();
+</script>
+
+</body>
+</html>
